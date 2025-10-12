@@ -1,5 +1,6 @@
 import base64
-from minikerberos.protocol.asn1_structs import KRBCRED, EncKrbCredPart, KrbCredInfo, EncryptedData, KERB_DMSA_KEY_PACKAGE
+from minikerberos.protocol.asn1_structs import KRBCRED, EncKrbCredPart,\
+    KrbCredInfo, EncryptedData, KERB_DMSA_KEY_PACKAGE, KERB_KEY_LIST_REP
 
 class Kirbi:
     def __init__(self, kirbiobj:KRBCRED = None, encpart = None):
@@ -121,6 +122,11 @@ class Kirbi:
                         t += '   [171] KeyPackage:\r\n'
                         for line in keypackage.describe().split('\n'):
                             t += '      %s\r\n' % line
+                    elif encpadata['padata-type'] == 162:
+                        keylist = KERB_KEY_LIST_REP.load(encpadata['padata-value'])
+                        t += '   [162] KeyList:\r\n'
+                        for key in keylist.native:
+                            t += '      %s: %s\r\n' % (key['keytype'], key['keyvalue'])
 
         t += 'EncodedKirbi : \r\n\r\n'
         t += self.format()
