@@ -183,6 +183,7 @@ class KerberosString(core.GeneralString):
 	values that contain characters other than those permitted by
 	IA5String...
 	"""
+	_encoding = 'utf-8'
 	
 class SequenceOfKerberosString(core.SequenceOf):
 	_child_spec = KerberosString
