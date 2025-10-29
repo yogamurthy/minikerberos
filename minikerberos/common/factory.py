@@ -230,7 +230,7 @@ class KerberosClientFactory:
 					)
 		
 		if proxy_type is not None:
-			res.proxies = UniProxyTarget.from_url_params(url_str, res.port)
+			res.proxies = UniProxyTarget.from_url_params(query, res.dc_ip, res.port)
 		
 		if res.username is None:
 			if res.secret_type != KerberosSecretType.CERTSTORE:

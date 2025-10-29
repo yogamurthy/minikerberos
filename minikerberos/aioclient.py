@@ -1172,7 +1172,8 @@ class AIOKerberosClient:
 		
 		authenticator_data = {}
 		authenticator_data['authenticator-vno'] = krb5_pvno
-		authenticator_data['crealm'] = partial_tgt_data['realm']
+		#authenticator_data['crealm'] = partial_tgt_data['realm']
+		authenticator_data['crealm'] = encticket['crealm']
 		authenticator_data['cusec'] = now.microsecond
 		authenticator_data['ctime'] = now.replace(microsecond=0)
 		authenticator_data['cname'] = PrincipalName({'name-type': NAME_TYPE.PRINCIPAL.value, 'name-string': [targetuser]})
@@ -1201,7 +1202,14 @@ class AIOKerberosClient:
 		pa_data_2 = {}
 		pa_data_2['padata-type'] = PaDataType.KEY_LIST_REQ.value
 		#pa_data_2['padata-value'] = KERB_KEY_LIST_REQ([23, 17, 18]).dump()
-		pa_data_2['padata-value'] = KERB_KEY_LIST_REQ([23, 17, 18]).dump()
+		pa_data_2['padata-value'] = KERB_KEY_LIST_REQ([
+			EncryptionType.AES256_CTS_HMAC_SHA1_96.value,
+			EncryptionType.AES128_CTS_HMAC_SHA1_96.value,
+			EncryptionType.ARCFOUR_HMAC_MD5.value,
+			EncryptionType.DES_CBC_CRC.value,
+			EncryptionType.DES_CBC_MD5.value,
+		
+		]).dump()
 
 
 		tgs_body_data = {}
@@ -1210,7 +1218,14 @@ class AIOKerberosClient:
 		tgs_body_data['realm'] = partial_tgt_data['realm']
 		tgs_body_data['till'] = (now + datetime.timedelta(days=1)).replace(microsecond=0)
 		tgs_body_data['nonce'] = secrets.randbits(31)
-		tgs_body_data['etype'] = [23, 17, 18, -128]
+		#tgs_body_data['etype'] = [23, 17, 18, -128]
+		tgs_body_data['etype'] = [
+			EncryptionType.AES256_CTS_HMAC_SHA1_96.value,
+			EncryptionType.AES128_CTS_HMAC_SHA1_96.value,
+			EncryptionType.ARCFOUR_HMAC_MD5.value,
+			EncryptionType.DES_CBC_CRC.value,
+			EncryptionType.DES_CBC_MD5.value,
+		]
 
 		tgs_req_data = {}
 		tgs_req_data['pvno'] = krb5_pvno

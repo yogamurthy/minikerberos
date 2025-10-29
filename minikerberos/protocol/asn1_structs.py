@@ -373,7 +373,6 @@ class TransitedEncoding(core.Sequence):
 	]
 
 
-
 # https://github.com/tiran/kkdcpasn1/blob/asn1crypto/pykkdcpasn1.py
 class Ticket(core.Sequence):
 	explicit = (APPLICATION,1)
