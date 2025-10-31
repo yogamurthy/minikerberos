@@ -178,6 +178,8 @@ class KerberosClientFactory:
 	def from_url(url_str):
 		res = KerberosClientFactory()
 		url = urlparse(url_str)
+  url = url._replace(netloc=f"{url.username}:{unquote(url.password)}@{url.hostname}")
+
 
 		res.dc_ip = url.hostname
 		schemes = url.scheme.upper().split('+')
