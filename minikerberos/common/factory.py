@@ -8,7 +8,7 @@ from minikerberos.common.constants import KerberosSecretType
 from minikerberos.aioclient import AIOKerberosClient
 from minikerberos.client import KerbrosClient
 
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote, quote
 
 from asysocks.unicomm.common.target import UniProto
 from asysocks.unicomm.common.proxy import UniProxyTarget
